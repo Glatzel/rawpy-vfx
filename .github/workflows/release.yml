@@ -33,6 +33,7 @@ jobs:
     steps:
       - name: check version
         id: check-version
+        continue-on-error: true
         run: |
           $libraw_view=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
@@ -48,7 +49,7 @@ jobs:
           }
           catch{
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
-            write-output "New version found."
+            write-output "New tag named: ${{ matrix.PYTHON_VERSION }}."
             exit 0
           }
           if([string]::IsNullOrWhiteSpace($asset)){
