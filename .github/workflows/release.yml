@@ -105,7 +105,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rawpy-rawpy-${{needs.version-check.outputs.rawpy_version}}-libraw-${{needs.version-check.outputs.libraw_version}}
+          name: rawpy-${{ matrix.PYTHON_VERSION }}
           path: ./rawpy/dist/rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl
           if-no-files-found: error
 
