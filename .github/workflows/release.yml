@@ -83,8 +83,8 @@ jobs:
       
       - name: install vcpkg dependency
         run: |
-          vcpkg install zlib libjpeg-turbo[jpeg8] jasper lcms --triplet=x64-windows-static --recurse
-
+          $triplet=Resolve-Path ./triplet
+          vcpkg install zlib libjpeg-turbo[jpeg8] jasper lcms --triplet=x64-windows-static --overlay-triplets=$triplet --recurse
 
       - name: build
         run: |
@@ -99,7 +99,6 @@ jobs:
       - name: rename whl
         run: |
           Rename-Item ./rawpy/dist/*.whl "rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl"
-          $whl = Get-ChildItem "./rawpy/dist/*.whl" | Sort-Object -Property Name -Descending | select -first 1
       
       - uses: actions/upload-artifact@v4
         with:
