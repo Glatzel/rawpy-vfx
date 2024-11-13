@@ -1,0 +1,14 @@
+{
+    "dependencies": [
+        {
+            "name": "libjpeg-turbo",
+            "features": [
+                "jpeg8"
+            ]
+        },
+        "jasper",
+        "lcms",
+        "zlib"
+    ],
+    "name": "rawpy"
+}

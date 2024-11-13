@@ -1,4 +1,4 @@
-name: Release
+name: CI
 
 permissions:
   contents: write
@@ -35,7 +35,7 @@ jobs:
         id: check-version
         continue-on-error: true
         run: |
-          $libraw_view=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
+          $LIBRAW_VERSION=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
 
@@ -44,13 +44,12 @@ jobs:
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
 
-          $tag= "${{ matrix.PYTHON_VERSION }}"
+          $assets= gh release -R Glatzel/rawpy-vfx view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[].name"
+          write-output $assets
 
-          try{gh release download $tag -R Glatzel/rawpy --pattern "*$RAWPY_VERSION+$LIBRAW_VERSION*.whl" -O temp/rawpy.whl}
-          catch{$lastexistcode=0}
-          if(Test-Path temp/rawpy.whl){
+          if($assets -like "*rawpy-$RAWPY_VERSION+$LIBRAW_VERSION-py3-none-any.whl*"){
             echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
-            write-output "No new version found, skip build."
+            write-output "No new version found."
           }
           else{
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
@@ -67,6 +66,8 @@ jobs:
     runs-on: windows-latest
     env:
       GH_TOKEN: ${{ github.token }}
+      USE_CONDA: 1
+      PYTHON_ARCH: 'x86_64'
 
     steps:
       - name: checkout
@@ -76,29 +77,35 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
           run-install: false
-      
+
       - name: clone rawpy
         run: git clone https://github.com/letmaik/rawpy.git --depth 1
-      
+
       - name: install vcpkg dependency
         run: |
-          vcpkg install zlib libjpeg-turbo[jpeg8] jasper lcms --triplet=x64-windows-static --recurse
-
+          $triplet=Resolve-Path ./triplet
+          vcpkg install --triplet=x64-windows-static --overlay-triplets=$triplet --recurse
 
       - name: build
         run: |
           $env:CMAKE_PREFIX_PATH = Resolve-Path "./vcpkg_installed/x64-windows-static"
           Set-Location rawpy
+          ../scripts/init-vs.ps1
           git apply ../numpy_require.patch
           pixi run -e ${{ matrix.PYTHON_VERSION }} python -u setup.py bdist_wheel
 
       - name: check whl
-        run: if(Test-path rawpy/dist/rawpy*.whl){}else{$lastexitcode=1}
-      
+        run: if(Test-path rawpy/dist/rawpy*.whl){ }else{$lastexitcode=1}
+
       - name: rename whl
         run: |
           Rename-Item ./rawpy/dist/*.whl "rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl"
-          $whl = Get-ChildItem "./rawpy/dist/*.whl" | Sort-Object -Property Name -Descending | select -first 1
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rawpy-${{ matrix.PYTHON_VERSION }}
+          path: ./rawpy/dist/rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl
+          if-no-files-found: error
 
       - name: Release
         if: ${{github.event_name=='workflow_dispatch' || github.event_name=='schedule'}}
