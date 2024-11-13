@@ -36,13 +36,11 @@ jobs:
         continue-on-error: true
         run: |
           $libraw_view=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
-          $LIBRAW_VERSION=$libraw_view.tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
 
-          $rawpy_view = gh release -R letmaik/rawpy view --json tagName -q .tagName
-          $RAWPY_VERSION = $rawpy_view.tagName
-          $RAWPY_VERSION=$RAWPY_VERSION.replace("v","")
+          $RAWPY_VERSION = gh release -R letmaik/rawpy view --json tagName -q .tagName
+          $RAWPY_VERSION="$RAWPY_VERSION".replace("v","")
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
 
