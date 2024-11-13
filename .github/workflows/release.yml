@@ -90,6 +90,7 @@ jobs:
         run: |
           $env:CMAKE_PREFIX_PATH = Resolve-Path "./vcpkg_installed/x64-windows-static"
           Set-Location rawpy
+          ../scripts/init-vs.ps1
           git apply ../numpy_require.patch
           pixi run -e ${{ matrix.PYTHON_VERSION }} python -u setup.py bdist_wheel
 
