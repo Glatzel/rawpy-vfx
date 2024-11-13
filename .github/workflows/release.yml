@@ -43,9 +43,16 @@ jobs:
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
 
-          $tag= "${{ matrix.PYTHON_VERSION }}"
 
-          if([string]::IsNullOrWhiteSpace(gh release -R Glatzel/oiio view --json assets -q ".assets.[] | select(.name | test("$RAWPY_VERSION+$LIBRAW_VERSION"))")){
+          try{
+            $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[] | select(.name | test("$RAWPY_VERSION+$LIBRAW_VERSION"))")
+          }
+          catch{
+            echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
+            write-output "New version found."
+            exit 0
+          }
+          if([string]::IsNullOrWhiteSpace($asset){
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
             write-output "New version found."
           }
