@@ -47,15 +47,13 @@ jobs:
           $assets= gh release -R Glatzel/rawpy-vfx view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[].name"
           write-output $assets
 
-          $jq=".assets.[]|select(.name|test(""$RAWPY_VERSION+$LIBRAW_VERSION""))"
-          $asset=gh release -R Glatzel/rawpy-vfx view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
-          if([string]::IsNullOrWhiteSpace($asset)){
-            echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
-            write-output "New version found."
+          if($assets -like "*rawpy-$RAWPY_VERSION+$LIBRAW_VERSION-py3-none-any.whl*"){
+            echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
+            write-output "No new version found."
           }
           else{
-            echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
-            write-output "No new version found, skip build."
+            echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
+            write-output "New version found."
           }
 
   release:
