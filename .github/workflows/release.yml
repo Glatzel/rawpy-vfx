@@ -45,7 +45,7 @@ jobs:
 
 
           try{
-            $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[] | select(.name | test("$RAWPY_VERSION+$LIBRAW_VERSION"))")
+            $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[] | select(.name | test("$RAWPY_VERSION+$LIBRAW_VERSION"))"
           }
           catch{
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
