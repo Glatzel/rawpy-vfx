@@ -38,15 +38,15 @@ jobs:
           $LIBRAW_VERSION=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
-          
+
           $RAWPY_VERSION = gh release -R letmaik/rawpy view --json tagName -q .tagName
           $RAWPY_VERSION="$RAWPY_VERSION".replace("v","")
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
-          
+
           $assets= gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[].name"
           write-output $assets
-          
+
           $jq=".assets.[]|select(.name|test(""$RAWPY_VERSION+$LIBRAW_VERSION""))"
           $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
           if([string]::IsNullOrWhiteSpace($asset)){
@@ -77,10 +77,10 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.1
         with:
           run-install: false
-      
+
       - name: clone rawpy
         run: git clone https://github.com/letmaik/rawpy.git --depth 1
-      
+
       - name: install vcpkg dependency
         run: |
           $triplet=Resolve-Path ./triplet
@@ -95,11 +95,11 @@ jobs:
 
       - name: check whl
         run: if(Test-path rawpy/dist/rawpy*.whl){}else{$lastexitcode=1}
-      
+
       - name: rename whl
         run: |
           Rename-Item ./rawpy/dist/*.whl "rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl"
-      
+
       - uses: actions/upload-artifact@v4
         with:
           name: rawpy-rawpy-${{needs.version-check.outputs.rawpy_version}}-libraw-${{needs.version-check.outputs.libraw_version}}
