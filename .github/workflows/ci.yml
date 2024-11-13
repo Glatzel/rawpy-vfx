@@ -97,7 +97,7 @@ jobs:
           pixi run -e ${{ matrix.PYTHON_VERSION }} python -u setup.py bdist_wheel
 
       - name: check whl
-        run: if(Test-path rawpy/dist/rawpy*.whl){}else{$lastexitcode=1}
+        run: if(Test-path rawpy/dist/rawpy*.whl){ }else{$lastexitcode=1}
 
       - name: rename whl
         run: |
