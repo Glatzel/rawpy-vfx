@@ -35,29 +35,20 @@ jobs:
         id: check-version
         continue-on-error: true
         run: |
-          Write-Output "::group::LibRaw"
           $LIBRAW_VERSION=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
-          Write-Output "::endgroup::"
-
-          Write-Output "::group::Rawpy"
+          
           $RAWPY_VERSION = gh release -R letmaik/rawpy view --json tagName -q .tagName
           $RAWPY_VERSION="$RAWPY_VERSION".replace("v","")
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
-          Write-Output "::endgroup::"
-
-          Write-Output "::group::list ${{ matrix.PYTHON_VERSION }} asset"
+          
           $assets= gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[].name"
           write-output $assets
-          Write-Output "::endgroup::"
           
-          Write-Output "::group::check new version"
           $jq=".assets.[]|select(.name|test(""$RAWPY_VERSION+$LIBRAW_VERSION""))"
-
           $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
-
           if([string]::IsNullOrWhiteSpace($asset)){
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
             write-output "New version found."
@@ -66,7 +57,6 @@ jobs:
             echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
             write-output "No new version found, skip build."
           }
-          Write-Output "::endgroup::"
 
   release:
     needs: version-check
@@ -110,6 +100,12 @@ jobs:
         run: |
           Rename-Item ./rawpy/dist/*.whl "rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl"
           $whl = Get-ChildItem "./rawpy/dist/*.whl" | Sort-Object -Property Name -Descending | select -first 1
+      
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rawpy-rawpy-${{needs.version-check.outputs.rawpy_version}}-libraw-${{needs.version-check.outputs.libraw_version}}
+          path: ./rawpy/dist/rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl
+          if-no-files-found: error
 
       - name: Release
         if: ${{github.event_name=='workflow_dispatch' || github.event_name=='schedule'}}
