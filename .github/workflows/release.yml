@@ -33,7 +33,6 @@ jobs:
     steps:
       - name: check version
         id: check-version
-        continue-on-error: true
         run: |
           $libraw_view=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
@@ -46,15 +45,13 @@ jobs:
 
           $tag= "${{ matrix.PYTHON_VERSION }}"
 
-          try{gh release download $tag -R Glatzel/rawpy --pattern "*$RAWPY_VERSION+$LIBRAW_VERSION*.whl" -O temp/rawpy.whl}
-          catch{$lastexistcode=0}
-          if(Test-Path temp/rawpy.whl){
-            echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
-            write-output "No new version found, skip build."
-          }
-          else{
+          if([string]::IsNullOrWhiteSpace(gh release -R Glatzel/oiio view --json assets -q ".assets.[] | select(.name | test("$RAWPY_VERSION+$LIBRAW_VERSION"))")){
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
             write-output "New version found."
+          }
+          else{
+            echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
+            write-output "No new version found, skip build."
           }
 
   release:
