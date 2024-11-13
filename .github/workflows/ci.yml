@@ -113,3 +113,4 @@ jobs:
         with:
           files: ./rawpy/dist/rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl
           tag_name: ${{ matrix.PYTHON_VERSION }}
+          make_latest: ${{ matrix.PYTHON_VERSION == 'vfx2024'}}
