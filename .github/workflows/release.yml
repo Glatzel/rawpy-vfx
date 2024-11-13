@@ -1,0 +1,106 @@
+name: Release
+
+permissions:
+  contents: write
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches: main
+  schedule:
+    - cron: "0 0 * * *"
+
+jobs:
+  version-check:
+    strategy:
+      matrix:
+        PYTHON_VERSION: ["vfx2024","vfx2025"]
+      fail-fast: false
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      LIBRAW_VERSION:
+      RAWPY_VERSION:
+    outputs:
+      need_build: ${{ steps.check-version.outputs.NEED_BUILD }}
+      libraw_version: ${{ steps.check-version.outputs.LIBRAW_VERSION }}
+      rawpy_version: ${{ steps.check-version.outputs.RAWPY_VERSION }}
+    steps:
+      - name: check version
+        id: check-version
+        continue-on-error: true
+        run: |
+          $libraw_view=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
+          $LIBRAW_VERSION=$libraw_view.tagName
+          "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
+          write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
+
+          $rawpy_view = gh release -R letmaik/rawpy view --json tagName -q .tagName
+          $RAWPY_VERSION = $rawpy_view.tagName
+          $RAWPY_VERSION=$RAWPY_VERSION.replace("v","")
+          "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
+          write-output "RAWPY_VERSION: $RAWPY_VERSION"
+
+          $tag= "${{ matrix.PYTHON_VERSION }}"
+
+          try{gh release download $tag -R Glatzel/rawpy --pattern "*$RAWPY_VERSION+$LIBRAW_VERSION*.whl" -O temp/rawpy.whl}
+          catch{$lastexistcode=0}
+          if(Test-Path temp/rawpy.whl){
+            echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
+            write-output "No new version found, skip build."
+          }
+          else{
+            echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
+            write-output "New version found."
+          }
+
+  release:
+    needs: version-check
+    if: ${{needs.version-check.outputs.need_build=='true'|| github.event_name=='push'||github.event_name=='pull_request' }}
+    strategy:
+      matrix:
+        PYTHON_VERSION: ["vfx2024","vfx2025"]
+      fail-fast: false
+    runs-on: windows-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          run-install: false
+      
+      - name: clone rawpy
+        run: git clone https://github.com/letmaik/rawpy.git --depth 1
+      
+      - name: install vcpkg dependency
+        run: |
+          vcpkg install zlib libjpeg-turbo[jpeg8] jasper lcms --triplet=x64-windows-static --recurse
+
+
+      - name: build
+        run: |
+          $env:CMAKE_PREFIX_PATH = Resolve-Path "./vcpkg/installed/x64-windows-static"
+          Set-Location rawpy
+          git apply ../numpy_require.patch
+          pixi run -e ${{ matrix.PYTHON_VERSION }} python -u setup.py bdist_wheel
+
+      - name: check whl
+        run: if(Test-path rawpy/dist/rawpy*.whl){}else{$lastexitcode=1}
+      
+      - name: rename whl
+        run: |
+          Rename-Item ./rawpy/dist/*.whl "rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl"
+          $whl = Get-ChildItem "./rawpy/dist/*.whl" | Sort-Object -Property Name -Descending | select -first 1
+
+      - name: Release
+        if: ${{github.event_name=='workflow_dispatch' || github.event_name=='schedule'}}
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ./rawpy/dist/rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl
+          tag_name: ${{ matrix.PYTHON_VERSION }}
