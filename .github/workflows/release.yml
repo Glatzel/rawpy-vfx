@@ -84,7 +84,7 @@ jobs:
       - name: install vcpkg dependency
         run: |
           $triplet=Resolve-Path ./triplet
-          vcpkg install zlib libjpeg-turbo[jpeg8] jasper lcms --triplet=x64-windows-static --overlay-triplets=$triplet --recurse
+          vcpkg install --triplet=x64-windows-static --overlay-triplets=$triplet --recurse
 
       - name: build
         run: |
