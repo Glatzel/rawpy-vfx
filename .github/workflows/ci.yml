@@ -44,11 +44,11 @@ jobs:
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
 
-          $assets= gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[].name"
+          $assets= gh release -R Glatzel/rawpy-vfx view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[].name"
           write-output $assets
 
           $jq=".assets.[]|select(.name|test(""$RAWPY_VERSION+$LIBRAW_VERSION""))"
-          $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
+          $asset=gh release -R Glatzel/rawpy-vfx view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
           if([string]::IsNullOrWhiteSpace($asset)){
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
             write-output "New version found."
