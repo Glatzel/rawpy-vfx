@@ -36,7 +36,7 @@ jobs:
         continue-on-error: true
         run: |
           Write-Output "::group::LibRaw"
-          $libraw_view=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
+          $LIBRAW_VERSION=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
           Write-Output "::endgroup::"
@@ -55,14 +55,9 @@ jobs:
           
           Write-Output "::group::check new version"
           $jq=".assets.[]|select(.name|test(""$RAWPY_VERSION+$LIBRAW_VERSION""))"
-          try{
-            $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
-          }
-          catch{
-            echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
-            write-output "New tag named: ${{ matrix.PYTHON_VERSION }}."
-            exit 0
-          }
+
+          $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
+
           if([string]::IsNullOrWhiteSpace($asset)){
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
             write-output "New version found."
