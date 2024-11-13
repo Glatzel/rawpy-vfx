@@ -54,8 +54,9 @@ jobs:
           Write-Output "::endgroup::"
           
           Write-Output "::group::check new version"
+          $jq=".assets.[]|select(.name|test(""$RAWPY_VERSION+$LIBRAW_VERSION""))"
           try{
-            $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[]|select(.name|test("$RAWPY_VERSION+$LIBRAW_VERSION"))"
+            $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q $jq
           }
           catch{
             echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
