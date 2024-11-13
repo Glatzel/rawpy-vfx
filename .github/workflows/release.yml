@@ -35,15 +35,25 @@ jobs:
         id: check-version
         continue-on-error: true
         run: |
+          Write-Output "::group::LibRaw"
           $libraw_view=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
+          Write-Output "::endgroup::"
 
+          Write-Output "::group::Rawpy"
           $RAWPY_VERSION = gh release -R letmaik/rawpy view --json tagName -q .tagName
           $RAWPY_VERSION="$RAWPY_VERSION".replace("v","")
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
+          Write-Output "::endgroup::"
 
+          Write-Output "::group::list ${{ matrix.PYTHON_VERSION }} asset"
+          $assets= gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[] | select(.name | test("$RAWPY_VERSION+$LIBRAW_VERSION"))"
+          write-output $assets
+          Write-Output "::endgroup::"
+          
+          Write-Output "::group::check new version"
           try{
             $asset=gh release -R Glatzel/rawpy-vfx-platform view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[] | select(.name | test("$RAWPY_VERSION+$LIBRAW_VERSION"))"
           }
@@ -60,6 +70,7 @@ jobs:
             echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
             write-output "No new version found, skip build."
           }
+          Write-Output "::endgroup::"
 
   release:
     needs: version-check
