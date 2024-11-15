@@ -13,14 +13,5 @@ numpy="==1.24.*"
 setuptools="*"
 cython="*"
 
-[feature.vfx2025.dependencies]
-python="3.11.*"
-[feature.vfx2025.pypi-dependencies]
-numpy="==1.26.*"
-setuptools="*"
-cython="*"
-
-
 [environments]
 vfx2024=["vfx2024"]
-vfx2025=["vfx2025"]

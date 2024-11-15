@@ -14,20 +14,17 @@ on:
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
-
+env:
+  vfx_platform: vfx2024
 jobs:
   version-check:
-    strategy:
-      matrix:
-        PYTHON_VERSION: ["vfx2024","vfx2025"]
-      fail-fast: false
     runs-on: windows-latest
     env:
       GH_TOKEN: ${{ github.token }}
       LIBRAW_VERSION:
       RAWPY_VERSION:
     outputs:
-      need_build: ${{ steps.check-version.outputs.NEED_BUILD }}
+      has_new_version: ${{ steps.check-version.outputs.has_new_version }}
       libraw_version: ${{ steps.check-version.outputs.LIBRAW_VERSION }}
       rawpy_version: ${{ steps.check-version.outputs.RAWPY_VERSION }}
     steps:
@@ -44,25 +41,21 @@ jobs:
           "RAWPY_VERSION=$RAWPY_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "RAWPY_VERSION: $RAWPY_VERSION"
 
-          $assets= gh release -R Glatzel/rawpy-vfx view ${{ matrix.PYTHON_VERSION }} --json assets -q ".assets.[].name"
+          $assets= gh release -R Glatzel/rawpy-vfx view ${{env.vfx_platform}} --json assets -q ".assets.[].name"
           write-output $assets
 
           if($assets -like "*rawpy-$RAWPY_VERSION+$LIBRAW_VERSION-py3-none-any.whl*"){
-            echo "NEED_BUILD=false" >> "$env:GITHUB_OUTPUT"
+            echo "has_new_version=false" >> "$env:GITHUB_OUTPUT"
             write-output "No new version found."
           }
           else{
-            echo "NEED_BUILD=true" >> "$env:GITHUB_OUTPUT"
+            echo "has_new_version=true" >> "$env:GITHUB_OUTPUT"
             write-output "New version found."
           }
 
   release:
     needs: version-check
-    if: ${{needs.version-check.outputs.need_build=='true'|| github.event_name=='push'||github.event_name=='pull_request' }}
-    strategy:
-      matrix:
-        PYTHON_VERSION: ["vfx2024","vfx2025"]
-      fail-fast: false
+    if: ${{needs.version-check.outputs.has_new_version=='true'|| github.event_name=='push'||github.event_name=='pull_request' }}
     runs-on: windows-latest
     env:
       GH_TOKEN: ${{ github.token }}
@@ -92,10 +85,17 @@ jobs:
           Set-Location rawpy
           ../scripts/init-vs.ps1
           git apply ../numpy_require.patch
-          pixi run -e ${{ matrix.PYTHON_VERSION }} python -u setup.py bdist_wheel
+          pixi run -e ${{env.vfx_platform}} python -u setup.py bdist_wheel
 
       - name: check whl
-        run: if(Test-path rawpy/dist/rawpy*.whl){ }else{$lastexitcode=1}
+        run: |
+          if(Test-path rawpy/dist/rawpy*.whl){ 
+            
+          }
+          else{
+            write-error "no whl found."
+            $lastexitcode=1
+          }
 
       - name: rename whl
         run: |
@@ -103,7 +103,7 @@ jobs:
 
       - uses: actions/upload-artifact@v4
         with:
-          name: rawpy-${{ matrix.PYTHON_VERSION }}
+          name: rawpy-${{env.vfx_platform}}
           path: ./rawpy/dist/rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl
           if-no-files-found: error
 
@@ -112,5 +112,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: ./rawpy/dist/rawpy-${{needs.version-check.outputs.rawpy_version}}+${{needs.version-check.outputs.libraw_version}}-py3-none-any.whl
-          tag_name: ${{ matrix.PYTHON_VERSION }}
-          make_latest: ${{ matrix.PYTHON_VERSION == 'vfx2024'}}
+          tag_name: ${{env.vfx_platform}}
