@@ -89,8 +89,8 @@ jobs:
 
       - name: check whl
         run: |
-          if(Test-path rawpy/dist/rawpy*.whl){ 
-            
+          if(Test-path rawpy/dist/rawpy*.whl){
+
           }
           else{
             write-error "no whl found."
