@@ -30,11 +30,16 @@ jobs:
       libraw_version: ${{ steps.check-version.outputs.LIBRAW_VERSION }}
       rawpy_version: ${{ steps.check-version.outputs.RAWPY_VERSION }}
     steps:
+      - name: Set up pixi
+        uses: prefix-dev/setup-pixi@v0.8.1
+        with:
+          run-install: false
+          
       - name: check version
         id: check-version
         continue-on-error: true
         run: |
-          $LIBRAW_VERSION=gh release -R LibRaw/LibRaw view --json tagName -q .tagName
+          $LIBRAW_VERSION= pixi search libraw | Select-String -Pattern "Version" | Select-Object -First 1 | ForEach-Object {($_ -split '\s+')[1]}
           "LIBRAW_VERSION=$LIBRAW_VERSION" >> "$env:GITHUB_OUTPUT"
           write-output "LIBRAW_VERSION: $LIBRAW_VERSION"
 
@@ -73,7 +78,9 @@ jobs:
         with:
           run-install: false
 
-      - run: pixi install --all
+      - run: |
+          pixi update
+          pixi install --all
 
       - name: build
         run: ./scripts/build-rawpy.ps1
