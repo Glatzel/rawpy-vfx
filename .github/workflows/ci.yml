@@ -76,14 +76,9 @@ jobs:
       - name: clone rawpy
         run: git clone https://github.com/letmaik/rawpy.git --depth 1
 
-      - name: install vcpkg dependency
-        run: |
-          $triplet=Resolve-Path ./triplet
-          vcpkg install --triplet=x64-windows-static --overlay-triplets=$triplet --recurse
-
       - name: build
         run: |
-          $env:CMAKE_PREFIX_PATH = Resolve-Path "./vcpkg_installed/x64-windows-static"
+          $env:CMAKE_PREFIX_PATH = Resolve-Path "./pixi/envs/vfx2024/Library"
           Set-Location rawpy
           ../scripts/init-vs.ps1
           git apply ../numpy_require.patch
