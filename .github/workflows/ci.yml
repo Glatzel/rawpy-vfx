@@ -73,16 +73,8 @@ jobs:
         with:
           run-install: false
 
-      - name: clone rawpy
-        run: git clone https://github.com/letmaik/rawpy.git --depth 1
-
       - name: build
-        run: |
-          $env:CMAKE_PREFIX_PATH = Resolve-Path "./.pixi/envs/vfx2024/Library"
-          Set-Location rawpy
-          ../scripts/init-vs.ps1
-          git apply ../numpy_require.patch
-          pixi run -e ${{env.vfx_platform}} python -u setup.py bdist_wheel
+        run: ../scripts/build-rawpy.ps1
 
       - name: check whl
         run: |
