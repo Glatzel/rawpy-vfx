@@ -73,6 +73,8 @@ jobs:
         with:
           run-install: false
 
+      - run: pixi install --all
+
       - name: build
         run: ./scripts/build-rawpy.ps1
 
