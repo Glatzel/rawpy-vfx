@@ -12,4 +12,4 @@ jobs:
   pixi-update:
     uses: Glatzel/template/.github/workflows/update-pixi-lock.yml@main
     with:
-      draft: "false"
+      draft: "true"
